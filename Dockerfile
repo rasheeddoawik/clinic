@@ -22,7 +22,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# نسخ ملفات المشروع بالكامل
+# نسخ ملفات المشروع بالكامل داخل السيرفر
 COPY . .
 
 # تفريغ أي كاش قديم وتنظيف البيئة قبل التثبيت
@@ -30,6 +30,9 @@ RUN rm -rf vendor composer.lock
 
 # تثبيت الحزم بطريقة مرنة جداً وتوليد الـ Autoloader
 RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --no-scripts
+
+# تشغيل الـ Migration لإنشاء الجداول مباشرة أثناء عملية بناء الـ Docker
+RUN php artisan migrate --force
 
 # إعدادات الـ Nginx لتوجيه السيرفر لمجلد public
 RUN echo 'server {\n\
@@ -63,5 +66,5 @@ RUN mkdir -p /var/www/storage/framework/sessions \
 
 EXPOSE 80
 
-# تشغيل الـ Migration بالمسار الصحيح فور إقلاع الحاوية ثم تشغيل السيرفر
-CMD php /var/www/artisan migrate --force && service nginx start && php-fpm
+# تشغيل السيرفر مباشرة بشكل مستقر
+CMD service nginx start && php-fpm
