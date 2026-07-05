@@ -1,6 +1,6 @@
 FROM php:8.3-fpm
 
-# تثبيت الإضافات المطلوبة لتشغيل لارافل وقاعدة البيانات
+# تثبيت الإضافات والمتطلبات الأساسية للنظام ولارافل
 RUN apt-get update && apt-get install -y \
     nginx \
     libpng-dev \
@@ -13,19 +13,23 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     libonig-dev \
     libxml2-dev \
+    libzip-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd
+    && docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip
 
-# تثبيت Composer
+# تثبيت أحدث إصدار من Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# نسخ ملفات المشروع داخل السيرفر
+# نسخ ملفات المشروع بالكامل
 COPY . .
 
-# تحديث حزم لارافل وحل توافقية الإصدارات والملفات المقفلة تلقائياً
-RUN composer update --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
+# تفريغ أي كاش قديم وتنظيف البيئة قبل التثبيت
+RUN rm -rf vendor composer.lock
+
+# تثبيت الحزم بطريقة مرنة جداً وتوليد الـ Autoloader
+RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --no-scripts
 
 # إعدادات الـ Nginx لتوجيه السيرفر لمجلد public
 RUN echo 'server {\n\
@@ -48,7 +52,7 @@ RUN echo 'server {\n\
 
 RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
-# صلاحيات المجلدات لتفريق الكاش والتخزين
+# صلاحيات المجلدات لتخزين الكاش والملفات
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 80
