@@ -63,4 +63,4 @@ RUN mkdir -p /var/www/storage/framework/sessions \
 
 EXPOSE 80
 
-CMD php artisan migrate --force && service nginx start && php-fpm
+CMD service nginx start && php-fpm
