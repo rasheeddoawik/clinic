@@ -63,4 +63,5 @@ RUN mkdir -p /var/www/storage/framework/sessions \
 
 EXPOSE 80
 
-CMD service nginx start && php-fpm
+# تشغيل الـ Migration بالمسار الصحيح فور إقلاع الحاوية ثم تشغيل السيرفر
+CMD php /var/www/artisan migrate --force && service nginx start && php-fpm
