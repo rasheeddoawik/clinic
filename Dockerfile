@@ -24,8 +24,8 @@ WORKDIR /var/www
 # نسخ ملفات المشروع داخل السيرفر
 COPY . .
 
-# تثبيت حزم لارافل وتجهيز الكاش مع تخطي متطلبات البيئة الصارمة
-RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
+# تحديث حزم لارافل وحل توافقية الإصدارات والملفات المقفلة تلقائياً
+RUN composer update --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
 # إعدادات الـ Nginx لتوجيه السيرفر لمجلد public
 RUN echo 'server {\n\
