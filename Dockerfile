@@ -29,7 +29,7 @@ COPY . .
 RUN rm -rf vendor composer.lock \
     && composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --no-scripts
 
-# استبدال إعدادات Nginx بالملف الخارجي المضمون
+# استبدال إعدادات Nginx بالملف الخارجي
 RUN rm -f /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default \
     && cp nginx.conf /etc/nginx/sites-available/default \
     && ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
@@ -43,6 +43,10 @@ RUN mkdir -p /var/www/storage/framework/sessions \
     && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
     && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
+# إعطاء صلاحية التشغيل لملف الـ entrypoint
+RUN chmod +x /var/www/entrypoint.sh
+
 EXPOSE 80
 
-CMD service nginx start && php-fpm
+# جعل ملف الـ entrypoint هو المسؤول عن إقلاع الحاوية بالكامل
+ENTRYPOINT ["/var/www/entrypoint.sh"]
