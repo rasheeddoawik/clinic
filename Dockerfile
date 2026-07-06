@@ -1,78 +1,41 @@
-FROM php:8.4-fpm
+FROM php:8.4-cli
 
-# تثبيت الإضافات، الـ Nginx، وأداة Supervisor لإدارة العمليات
+# تثبيت الإضافات الأساسية التي يحتاجها لارافل 13 للاتصال بقاعدة البيانات ومعالجة الملفات
 RUN apt-get update && apt-get install -y \
-    nginx \
-    supervisor \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
     zip \
     unzip \
     git \
     curl \
+    libpng-dev \
     libpq-dev \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip
 
-# تثبيت Composer
+# تثبيت أحدث إصدار من Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# تحديد مجلد العمل الرئيسي والوحيد
+# تحديد مجلد العمل داخل الحاوية
 WORKDIR /var/www
 
-# نسخ ملفات المشروع
+# نسخ ملفات مشروع العيادة بالكامل
 COPY . .
 
-# تثبيت الحزم بنظافة والتوافق مع PHP 8.4
+# تثبيت حزم الملحقات بنظافة وتوافق كامل
 RUN rm -rf vendor composer.lock \
     && composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --no-scripts
 
-# التعديل الذهبي: ضبط تمرير المسارات الدقيقة بين Nginx و PHP لإنهاء خطأ File not found
-RUN echo 'server {\n\
-    listen 80;\n\
-    root /var/www/public;\n\
-    index index.php index.html;\n\
-    location / {\n\
-        try_files $uri $uri/ /index.php?$query_string;\n\
-    }\n\
-    location ~ \.php$ {\n\
-        include fastcgi_params;\n\
-        fastcgi_pass 127.0.0.1:9000;\n\
-        fastcgi_index index.php;\n\
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;\n\
-        fastcgi_param PATH_INFO $fastcgi_path_info;\n\
-    }\n\
-}' > /etc/nginx/sites-available/default
-
-RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
-
-# إنشاء مجلدات الكاش وضبط الصلاحيات بالكامل لتجنب أخطاء لارافل الداخلية
+# إنشاء مجلدات الكاش وضبط صلاحياتها بالكامل لضمان عمل السيرفر الداخلي
 RUN mkdir -p /var/www/storage/framework/sessions \
     && mkdir -p /var/www/storage/framework/views \
     && mkdir -p /var/www/storage/framework/caches \
     && mkdir -p /var/www/storage/logs \
     && mkdir -p /var/www/bootstrap/cache \
-    && chown -R www-data:www-data /var/www \
-    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+    && chmod -R 777 /var/www/storage /var/www/bootstrap/cache
 
-# إعداد الـ Supervisor لتشغيل خادم الويب ومعالج الـ PHP معاً
-RUN echo '[supervisord]\n\
-nodaemon=true\n\
-user=root\n\
-[program:php-fpm]\n\
-command=php-fpm\n\
-autostart=true\n\
-autorestart=true\n\
-[program:nginx]\n\
-command=nginx -g "daemon off;"\n\
-autostart=true\n\
-autorestart=true' > /etc/supervisor/conf.d/supervisord.conf
-
+# فتح المنفذ 80 وهو المنفذ الافتراضي الذي ينتظره موقع Render
 EXPOSE 80
 
-# تشغيل التهجير لبناء الجداول أولاً، ثم تشغيل الـ Supervisor
-CMD php artisan migrate --force && /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+# خطة الإقلاع: تشغيل الهجرة لبناء الجداول فوراً، ثم تشغيل سيرفر لارافل الأصلي مباشرة على المنفذ 80
+CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=80
