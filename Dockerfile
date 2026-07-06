@@ -1,52 +1,23 @@
-FROM php:8.3-fpm
+FROM webdevops/php-nginx:8.3-alpine
 
-# تثبيت الإضافات والمتطلبات الأساسية
-RUN apt-get update && apt-get install -y \
-    nginx \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    zip \
-    unzip \
-    git \
-    curl \
-    libpq-dev \
-    libonig-dev \
-    libxml2-dev \
-    libzip-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip
+# ضبط مجلد العمل الرئيسي للسيرفر (الافتراضي لهذه الصورة هو /app)
+WORKDIR /app
 
-# تثبيت Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-WORKDIR /var/www
-
-# نسخ ملفات المشروع
+# نسخ ملفات مشروع لارافل بالكامل إلى داخل الحاوية
 COPY . .
 
-# تفريغ الكاش وتثبيت الحزم
+# ضبط المتغير البيئي لإجبار السيرفر على قراءة مجلد public الخاص بلارافل كجذر للموقع
+ENV WEB_DOCUMENT_ROOT=/app/public
+
+# تفريغ الكاش وتثبيت حزم الملحقات (Composer) بنظافة
 RUN rm -rf vendor composer.lock \
     && composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --no-scripts
 
-# استبدال إعدادات Nginx بالملف الخارجي
-RUN rm -f /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default \
-    && cp nginx.conf /etc/nginx/sites-available/default \
-    && ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
-
-# ضبط الصلاحيات والمجلدات لتخزين الكاش
-RUN mkdir -p /var/www/storage/framework/sessions \
-    && mkdir -p /var/www/storage/framework/views \
-    && mkdir -p /var/www/storage/framework/caches \
-    && mkdir -p /var/www/storage/logs \
-    && mkdir -p /var/www/bootstrap/cache \
-    && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
-    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
-
-# إعطاء صلاحية التشغيل لملف الـ entrypoint
-RUN chmod +x /var/www/entrypoint.sh
+# ضبط صلاحيات المجلدات لتخزين الكاش والملفات بأعلى صلاحية للمستخدم المالك للسيرفر
+RUN chown -R application:application /app \
+    && chmod -R 775 /app/storage /app/bootstrap/cache
 
 EXPOSE 80
 
-# جعل ملف الـ entrypoint هو المسؤول عن إقلاع الحاوية بالكامل
-ENTRYPOINT ["/var/www/entrypoint.sh"]
+# تشغيل التهجير لبناء الجداول فور إقلاع الحاوية بنجاح ثم بدء تشغيل السيرفر تلقائياً
+CMD php artisan migrate --force && supervisord
