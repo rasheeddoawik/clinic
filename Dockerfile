@@ -20,20 +20,21 @@ RUN apt-get update && apt-get install -y \
 # تثبيت أحدث إصدار من Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-WORKDIR /var/www
+# مجلد العمل القياسي والآمن داخل الحاوية
+WORKDIR /var/www/html
 
-# نسخ ملفات المشروع بالكامل
+# نسخ ملفات المشروع بالكامل إلى المجلد الصحيح
 COPY . .
 
 # تفريغ الكاش وتثبيت الحزم المتوافقة مع PHP 8.4
 RUN rm -rf vendor composer.lock \
     && composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --no-scripts
 
-# إعدادات الـ Nginx لتوجيه السيرفر لمجلد public الافتراضي
+# إعدادات الـ Nginx الدقيقة للتوجيه لقراءة مجلد public بنجاح وتمرير المسارات لارافل
 RUN echo 'server {\n\
     listen 80;\n\
     index index.php index.html;\n\
-    root /var/www/public;\n\
+    root /var/www/html/public;\n\
     location / {\n\
         try_files $uri $uri/ /index.php?$query_string;\n\
     }\n\
@@ -51,15 +52,15 @@ RUN echo 'server {\n\
 RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
 # إنشاء مجلدات الكاش وضبط صلاحياتها بالكامل
-RUN mkdir -p /var/www/storage/framework/sessions \
-    && mkdir -p /var/www/storage/framework/views \
-    && mkdir -p /var/www/storage/framework/caches \
-    && mkdir -p /var/www/storage/logs \
-    && mkdir -p /var/www/bootstrap/cache \
-    && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
-    && chmod -R 777 /var/www/storage /var/www/bootstrap/cache
+RUN mkdir -p /var/www/html/storage/framework/sessions \
+    && mkdir -p /var/www/html/storage/framework/views \
+    && mkdir -p /var/www/html/storage/framework/caches \
+    && mkdir -p /var/www/html/storage/logs \
+    && mkdir -p /var/www/html/bootstrap/cache \
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache
 
 EXPOSE 80
 
-# تشغيل التهجير قسرياً فور الإقلاع ثم تشغيل السيرفر لخادم الويب والمعالج معاً
+# تشغيل الـ Migration وبناء الجداول فوراً عند الإقلاع ثم تشغيل السيرفر لخادم الويب والمعالج معاً
 CMD php artisan migrate --force && service nginx start && php-fpm
