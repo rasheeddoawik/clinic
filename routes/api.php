@@ -28,8 +28,7 @@ Route::get('/admin/dashboard', [AppointmentController::class, 'adminDashboard'])
 
 
 ////////////////////////////
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Route;
+
 
 Route::get('/run-migration-securely', function () {
     try {
