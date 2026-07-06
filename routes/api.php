@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AuthController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan; // 👈 الاستدعاء الصحيح والوحيد هنا
 
 /*
 |--------------------------------------------------------------------------
@@ -20,16 +21,15 @@ Route::get('/patients/{userId}', [PatientController::class, 'getPatient']);
 // 2. مسارات جدولة المواعيد وإلغائها وتحديث الحالات عبر المودال
 Route::post('/appointments', [AppointmentController::class, 'store']);
 Route::get('/appointments/{id}', [AppointmentController::class, 'show']);
-Route::put('/appointments/{id}', [AppointmentController::class, 'update']); // 👈 تم التعديل هنا ليتطابق مع الفرونت آند تماماً
+Route::put('/appointments/{id}', [AppointmentController::class, 'update']); 
 
 // 3. مسارات لوحة التحكم والتحقق الآمن من الـ Passkey للمسؤول (Admin)
 Route::post('/admin/verify-passkey', [AuthController::class, 'verifyAdminPasskey']);
 Route::get('/admin/dashboard', [AppointmentController::class, 'adminDashboard']);
 
-
 ////////////////////////////
 
-
+// مسار تشغيل الهجرة الآمنة
 Route::get('/run-migration-securely', function () {
     try {
         // مسح الكاش أولاً للتأكد من قراءة كل شيء بنظافة
