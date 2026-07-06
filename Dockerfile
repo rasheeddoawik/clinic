@@ -31,7 +31,7 @@ COPY . .
 RUN rm -rf vendor composer.lock \
     && composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --no-scripts
 
-# إعداد إجباري ومضمون لـ Nginx ليوجه كافة الطلبات لملف index.php داخل public
+# التعديل الذهبي: ضبط تمرير المسارات الدقيقة بين Nginx و PHP لإنهاء خطأ File not found
 RUN echo 'server {\n\
     listen 80;\n\
     root /var/www/public;\n\
@@ -42,7 +42,9 @@ RUN echo 'server {\n\
     location ~ \.php$ {\n\
         include fastcgi_params;\n\
         fastcgi_pass 127.0.0.1:9000;\n\
+        fastcgi_index index.php;\n\
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;\n\
+        fastcgi_param PATH_INFO $fastcgi_path_info;\n\
     }\n\
 }' > /etc/nginx/sites-available/default
 
@@ -57,7 +59,7 @@ RUN mkdir -p /var/www/storage/framework/sessions \
     && chown -R www-data:www-data /var/www \
     && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
-# إعداد الـ Supervisor لتشغيل خادم الويب ومعالج الـ PHP معاً خلف الكواليس دون انهيار
+# إعداد الـ Supervisor لتشغيل خادم الويب ومعالج الـ PHP معاً
 RUN echo '[supervisord]\n\
 nodaemon=true\n\
 user=root\n\
@@ -72,5 +74,5 @@ autorestart=true' > /etc/supervisor/conf.d/supervisord.conf
 
 EXPOSE 80
 
-# تشغيل التهجير لبناء الجداول أولاً وقبل كل شيء، ثم تسليم الراية للـ Supervisor
+# تشغيل التهجير لبناء الجداول أولاً، ثم تشغيل الـ Supervisor
 CMD php artisan migrate --force && /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
