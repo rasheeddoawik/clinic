@@ -24,7 +24,7 @@ COPY . .
 
 # تفريغ الكاش وتثبيت الحزم بنظافة متوافقة مع PHP 8.4
 RUN rm -rf vendor composer.lock \
-    && composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --no-scripts
+    && composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
 # إنشاء وتأمين مجلدات public والكاش في جميع المسارات المتوقعة لإنهاء خطأ cwd تماماً
 RUN mkdir -p /var/www/html/public \
@@ -36,8 +36,11 @@ RUN mkdir -p /var/www/html/public \
     && mkdir -p /var/www/html/bootstrap/cache \
     && chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public /var/www/public
 
+# 👈 السطر السحري: تنظيف الكاش القديم تماماً وإعادة بنائه داخل الحاوية ليتعرف على الكنترولرات الجديدة
+RUN php artisan config:clear && php artisan route:clear
+
 # فتح المنفذ 80 الافتراضي لموقع Render
 EXPOSE 80
 
-# تشغيل التهجير لبناء الجداول فوراً عند الإقلاع، ثم تشغيل سيرفر لارافل الأصلي مباشرة
-CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=80
+# تشغيل التهجير لبناء الجداول فوراً عند الإقلاع، ثم تنظيف الكاش النهائي وتشغيل السيرفر
+CMD php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan serve --host=0.0.0.0 --port=80
