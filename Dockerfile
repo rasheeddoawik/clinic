@@ -22,9 +22,9 @@ WORKDIR /var/www/html
 # نسخ ملفات المشروع بالكامل إلى الحاوية
 COPY . .
 
-# تفريغ الكاش وتثبيت الحزم بنظافة متوافقة مع PHP 8.4
+# تفريغ الكاش وتثبيت الحزم بنظافة متوافقة مع PHP 8.4 (تم إصلاح أمر السكريبتات هنا)
 RUN rm -rf vendor composer.lock \
-    && composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
+    && composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --no-scripts
 
 # إنشاء وتأمين مجلدات public والكاش في جميع المسارات المتوقعة لإنهاء خطأ cwd تماماً
 RUN mkdir -p /var/www/html/public \
@@ -36,8 +36,10 @@ RUN mkdir -p /var/www/html/public \
     && mkdir -p /var/www/html/bootstrap/cache \
     && chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public /var/www/public
 
-# 👈 السطر السحري: تنظيف الكاش القديم تماماً وإعادة بنائه داخل الحاوية ليتعرف على الكنترولرات الجديدة
-RUN php artisan config:clear && php artisan route:clear
+# تشغيل الأوامر الصارمة يدويًا للتأكد من نشر الملفات والتعرف على الكنترولرات الجديدة
+RUN php artisan config:clear \
+    && php artisan route:clear \
+    && php artisan vendor:publish --tag=laravel-assets --ansi --force
 
 # فتح المنفذ 80 الافتراضي لموقع Render
 EXPOSE 80
