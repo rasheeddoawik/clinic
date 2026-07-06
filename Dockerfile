@@ -1,6 +1,6 @@
-FROM php:8.3-fpm
+FROM php:8.4-fpm
 
-# تثبيت الإضافات والمتطلبات الأساسية للنظام ولارافل
+# تثبيت الإضافات والمتطلبات الأساسية للنظام ولارافل 13
 RUN apt-get update && apt-get install -y \
     nginx \
     libpng-dev \
@@ -25,7 +25,7 @@ WORKDIR /var/www
 # نسخ ملفات المشروع بالكامل
 COPY . .
 
-# تفريغ الكاش وتثبيت الحزم بطريقة مرنة
+# تفريغ الكاش وتثبيت الحزم المتوافقة مع PHP 8.4
 RUN rm -rf vendor composer.lock \
     && composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --no-scripts
 
