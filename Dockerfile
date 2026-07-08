@@ -45,4 +45,4 @@ RUN php artisan config:clear \
 EXPOSE 80
 
 # تشغيل التهجير لبناء الجداول فوراً عند الإقلاع، ثم تنظيف الكاش النهائي وتشغيل السيرفر
-CMD php artisan config:clear && php artisan cache:clear && php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan serve --host=0.0.0.0 --port=80
+CMD php artisan config:clear && php artisan cache:clear && php artisan view:clear && php artisan route:clear && sleep 5 && php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan serve --host=0.0.0.0 --port=80
